@@ -10,61 +10,55 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## 1.(20points) 
-Set up a github account and create a repository called DSCI401
+# 1.Set up a github account and create a repository called DSCI401
+https://github.com/iisabel/DSCI-401.git
 
-## 2. (40 points) 
-Create an R Markdown file and run the following code:
+# 2. Create an R Markdown file and run the following code:
 ```{r}
-#getwd()
-
 df <- read.csv("/Users/isabelheard/Downloads/DSCI 401/DSCI401_git/data/cubs_all_time.csv")
-head(df)
+#head(df)
 ```
 
-## Answer the following questions using R:
-# (a) 
-How many total games have the Cubs won and lost between 1876 and 2022?
+## A) How many total games have the Cubs won and lost between 1876 and 2022?
 ```{r}
 sum(df$W)
 sum(df$L)
 ```
 11141 games won between 1876 and 2022.
+
 10592 games lost between 1876 and 2022.
 
 
-# (b) 
-What year did the Cubs score the most runs? 
+## B) What year did the Cubs score the most runs? 
 ```{r}
+#max(df$R)
 which.max(df$R)
 df[129, ]
-
-max(df$R)
 ```
 The cubs scored the most runs (1056) in 1894.
 
 
-What year did the Cubs score the fewest runs? 
+## B2) What year did the Cubs score the fewest runs? 
 ```{r}
+#min(df$R)
 which.min(df$R)
 df[3, ]
-
-min(df$R)
 ```
 The cubs scored the least runs (265) in 2020.
 
 
-Do you have any thoughts about the year that the Cubs scored the fewest runs?
+## B3) Do you have any thoughts about the year that the Cubs scored the fewest runs?
+
+COVID-19 meant that there were fewer games.
+
+## C) In how many seasons was the Cubs total attendance (i.e. the variable Attendance) over 3 million?
 ```{r}
-
-```
-Covid-19.
-
-# (c) 
-In how many seasons was the Cubs total attendance (i.e. the variable Attendance) over 3 million?
-```{r}
-df$Attendance >= 3000000
-
+#df$Attendance >= 3000000
 length(which(df$Attendance >= 3000000))
 ```
-2 seasons the total club attendance was over 3 million.
+12 seasons the total club attendance was over 3 million.
+
+
+# Python code link
+https://colab.research.google.com/drive/1Pg0RwYnDq1VCvyB0_iPm5WyZk1lQ98Cy?usp=sharing
+
