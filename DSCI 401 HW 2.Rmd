@@ -1,0 +1,222 @@
+---
+title: "DSCI 401 HW 2"
+author: "Isabel Heard"
+date: "09/22/2023"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# 1
+Using the Teams data frame in the Lahman package:
+```{r}
+#install.packages('Lahman')
+library(Lahman)
+library("dplyr")
+library("tidyr")
+```
+
+## A
+Create a data frame that is a subset of the Teams data frame that contains only the years from 2000 through 2009 and the variables yearID, W, and L.
+```{r}
+#Import data
+data(Teams)
+#head(Teams)
+#summary(Teams)
+
+#Create a subset of the data
+df.sub <- subset(Teams, yearID >= 2000 & yearID <= 2009, select = c("yearID", "W", "L"))
+summary(df.sub)
+```
+
+
+## B
+How many years did the Chicago Cubs (teamID is “CHN”) hit at least 200 HRs in a season and what was the median number of wins in those seasons.
+```{r}
+#Filter on teamID, group by yearID, calculate median number of wins on seasons where HRs > 200
+cubs <- Teams %>%
+  filter(teamID == "CHN") %>%
+  group_by(yearID) %>%
+  summarize(total_HRs = sum(HR), median_wins = median(W)) %>%
+  filter(total_HRs >= 200)
+
+#Count the number of years
+num_years_with_200_HRs <- nrow(cubs)
+cat("Number of years with at least 200 HRs:", num_years_with_200_HRs, "\n")
+
+#Median number of wins in those seasons
+cat("Median number of wins in those seasons:", median(cubs$median_wins), "\n")
+```
+
+
+## C
+Create a factor called election that divides the yearID into 4-year blocks that correspond to U.S. presidential terms. The first presidential term started in 1788. They each last 4 years and are still on the schedule set in 1788. During which term were the most home runs been hit?
+```{r}
+#Find the start years of each term
+start_years <- seq(1788, max(Teams$yearID), by = 4)
+
+#Add a small offset to the start_years to ensure uniquenes
+start_years <- start_years + 0.001
+
+#Create labels for the presidential terms
+term_labels <- paste("Term", 1:length(start_years))
+
+# Create the "election" factor variable
+Teams$election <- cut(Teams$yearID, breaks = c(1788, start_years), labels = term_labels, right = FALSE)
+
+#Find the term with the most home runs
+term_with_most_home_runs <- aggregate(HR ~ election, Teams, sum)
+term_with_most_home_runs <- term_with_most_home_runs[which.max(term_with_most_home_runs$HR), ]
+
+cat("The most home runs were hit during term", term_with_most_home_runs$election, "- 2000-2004 \n")
+```
+
+
+
+
+
+
+## D
+Make a line plot of total home runs per season and stratify by league. Remove observations where league is missing.
+```{r}
+library(ggplot2)
+#Remove missing values
+df <- subset(Teams, !(lgID == "NA"))
+
+#Group the data by year and league, calculate the total home runs per season (year)
+hr_per_season <- df %>% group_by(yearID, lgID) %>% summarize(total_home_runs = sum(HR))
+
+ggplot(hr_per_season, aes(x = yearID, y = total_home_runs, color = lgID)) +
+  geom_line() + labs(x = "Year", y = "Total Home Runs", title = "Total Home Runs per Season by League") +
+  theme_minimal()
+```
+
+
+## E
+Create an indicator variable called “winning record” which is defined as TRUE if the number of wins is greater than the number of losses and FALSE otherwise. Plot a scatter plot of Runs (R) vs Runs against (RA) with the color of each point showing whether that team had a winning record or not.
+```{r}
+#Create "winning_record" variable
+Teams <- Teams %>% mutate(winning_record = W > L)
+
+#Scatter plot of R vs RA
+ggplot(Teams, aes(x = R, y = RA, color = winning_record)) +
+  geom_point() +
+  scale_color_manual(values = c("TRUE" = "green", "FALSE" = "red")) +
+  labs(x = "Runs", y = "Runs Against", title = "Runs vs. Runs Against") +
+  theme_minimal()
+```
+
+
+
+
+
+
+# 2
+The Violations data set in the mdsr package contains information regarding the outcome of health inspections of restaurants in New York City.
+```{r}
+#install.packages('mdsr')
+library(mdsr)
+
+data(Violations)
+#head(Violations)
+#tail(Violations)
+```
+
+Write out Violations csv file to work with in python.
+```{r}
+#data(Violations)
+#csv_filename <- "Violations.csv"
+#write.csv(Violations, file = csv_filename, row.names = FALSE)
+```
+
+
+## A
+What proportion of inspections in each boro were given a grade of A? (Missing values should be counted as not and A grade.)
+```{r}
+#Group data by boro and grade, and count grade
+grade_counts <- Violations %>% group_by(boro, grade) %>% summarize(count = n())
+
+#Filter where grade is A
+grade_A_counts <- grade_counts %>% filter(grade == "A")
+
+#Find total inspections in each boro
+total_counts <- grade_counts %>% group_by(boro) %>% summarize(total_count = sum(count))
+
+#Calculate the proportion of A grades
+result <- merge(grade_A_counts, total_counts, by = "boro") %>% mutate(proportion_A = count / total_count)
+print(result)
+```
+
+
+## B
+Find the top ten dba’s with the most number of inspections. Then compute the average score for each of these dba’s and sort by mean score. Which of these top 10 had the lowest average inspection score?
+```{r}
+#Get dba by number of inspections
+dba_counts <- Violations %>% group_by(dba) %>% summarize(inspection_count = n()) 
+
+#Top ten dba's based on inspections
+top_10_dbas <- dba_counts %>% arrange(desc(inspection_count)) %>% head(10)
+
+#Filter the original data frame to keep only the rows for the top 10 DBAs
+filtered_df <- Violations %>% filter(dba %in% top_10_dbas$dba)
+
+#Mean score for each of the top 10
+average_scores <- filtered_df %>% group_by(dba) %>% summarize(mean_score = mean(score, na.rm = TRUE)) %>% arrange(mean_score)
+
+#Find store with lowest inspection score
+lowest_average_score_dba <- average_scores$dba[1]
+cat("DBA with the lowest average inspection score:", lowest_average_score_dba, "\n")
+
+#All top ten average scores
+print(average_scores)
+```
+
+
+## C
+Use these data to calculate the median violation score by zip code for zip codes in Manhattan with 50 or more inspections. What pattern do you see between the number of inspections and the median score?
+```{r}
+#Filter for Manhattan
+manhattan_df <- Violations %>% filter(boro == "MANHATTAN")
+
+#Group the data by 'zip_code' and calculate the count of inspections for each zip code
+zip_code_counts <- manhattan_df %>%
+  group_by(zipcode) %>%
+  summarize(inspection_count = n())
+
+#Filter to keep only zip codes with 50 or more inspections
+zip_codes_50_or_more <- zip_code_counts %>%
+  filter(inspection_count >= 50)
+
+# Filter the original data frame to keep only the rows for zip codes with 50 or more inspections
+filtered_df <- Violations %>%
+  filter(zipcode %in% zip_codes_50_or_more$zipcode)
+
+# Calculate the median violation score by zip code
+median_scores <- filtered_df %>%
+  group_by(zipcode) %>%
+  summarize(
+    median_score = median(score, na.rm = TRUE),
+    inspection_count = n())
+
+print(median_scores)
+```
+
+
+```{r}
+ggplot(median_scores, aes(x = median_score)) +
+  geom_histogram(bins = 15, fill = "blue", color = "black") +
+  labs(x = "Median Score", y = "Frequency", title = "Histogram of Median Scores in Manhattan with > 50 inspections")
+```
+
+The more inspections, the higher the median score.
+
+
+# Link to Colab
+https://colab.research.google.com/drive/1uX6_pM1eR8yPIt4egT1LImYel8nvPBr_?usp=sharing
