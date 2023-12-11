@@ -1,0 +1,375 @@
+---
+title: "DSCI 401 Final Project"
+author: "Isabel Heard"
+date: "Fall 2023"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading Data
+
+## Packages
+```{r, echo=TRUE, results='hide'}
+library(ggplot2)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(plotly) 
+library(sf)
+library(leaflet)
+```
+
+## Load in Data
+```{r, echo=TRUE, results='hide'}
+car_df <- read.csv("EVPopulation.csv")
+income_df <- read.csv("Median_Household_Income.csv")
+```
+
+
+# Data Cleaning
+
+## Data Cleaning - EVPopulation
+```{r, echo=TRUE}
+car_df_na <- sapply(car_df, function(x) sum(is.na(x)))
+print(car_df_na)
+
+#Just Washington
+wa_data <- subset(car_df, State == "WA")
+```
+
+
+## Data Cleaning - Median_Household_Income.csv
+```{r, echo=TRUE}
+income_df_na <- sapply(income_df, function(x) sum(is.na(x)))
+print(income_df_na)
+
+#Only contain county variable
+county_income_df <- income_df %>%
+  filter(grepl("County", Geography.Type, ignore.case = TRUE))
+
+#Fix 'Name' variable to only conatin county
+county_income_df$Name <- str_extract(county_income_df$Name, "\\w+")
+```
+
+
+
+
+# EDA 
+
+## wa_data
+```{r, echo=TRUE, results='hide'}
+dim(wa_data)
+#County
+unique_County <- unique(wa_data$County)
+print(unique_County)
+
+#City
+unique_City <- unique(wa_data$City)
+print(unique_City)
+
+#State
+unique_State <- unique(wa_data$State)
+print(unique_State)
+
+#Zip Code
+unique_zip <- unique(wa_data$Postal.Code)
+print(unique_zip)
+
+#Make
+unique_make <- unique(wa_data$Make)
+print(unique_make)
+
+#Model Year
+unique_model_year <- unique(wa_data$Model.Year)
+print(unique_model_year)
+
+#Mile Range
+unique_miles <- unique(wa_data$Electric.Range)
+print(unique_miles)
+
+#County check
+Pierce_County <- subset(wa_data, County == "Pierce") #12,315
+King_County <- subset(wa_data, County == "King") #83,413 rows
+```
+
+
+## county_income_df
+```{r, echo=TRUE, results='hide'}
+#County
+unique_Name <- unique(county_income_df$Name)
+print(unique_Name)
+
+#Contains data from 2011 - 2021
+PierceCounty <- subset(county_income_df, Name == "Pierce")
+
+#Median Income
+summary(PierceCounty$Value)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Questions
+## 1
+What make and model is the most popular?
+```{r}
+#Top ten most popular makes
+make_counts <- table(wa_data$Make)
+sorted_make_counts <- sort(make_counts, decreasing = TRUE)
+top_ten_make <- names(sorted_make_counts)[1:10]
+top_ten_make_data <- data.frame(Make = names(sorted_make_counts)[1:10], Count = sorted_make_counts[1:10])
+
+ggplot(top_ten_make_data, aes(x = Make, y = Count.Freq, fill = Make)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top Ten Most Popular Makes",
+       x = "Make",
+       y = "Count") +
+  theme_minimal() +
+  guides(fill = FALSE) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+#Top ten most popular models
+model_counts <- table(wa_data$Model)
+sorted_model_counts <- sort(model_counts, decreasing = TRUE)
+top_ten_models <- names(sorted_model_counts)[1:10]
+top_ten_data <- data.frame(Model = names(sorted_model_counts)[1:10], Count = sorted_model_counts[1:10])
+
+ggplot(top_ten_data, aes(x = Model, y = Count.Freq, fill = Model)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top Ten Most Popular Models",
+       x = "Model",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Printing out with all of the other info to see which model matches the make
+model_counts2 <- table(wa_data$Model)
+sorted_model_counts2 <- sort(model_counts2, decreasing = TRUE)
+top_ten_models2 <- names(sorted_model_counts2)[1:10]
+filtered_data2 <- wa_data %>% filter(Model %in% top_ten_models2)
+```
+
+
+
+
+
+
+
+## 2
+Which counties have the most electric vehicles?
+```{r}
+#Top ten counties with the most electric cars
+model_county <- table(wa_data$County)
+sorted_model_county <- sort(model_county, decreasing = TRUE)
+top_county <- names(sorted_model_county)[1:10]
+top_county_data <- data.frame(County = names(sorted_model_county)[1:10], Count = sorted_model_county[1:10])
+
+ggplot(top_county_data, aes(x = County, y = Count.Freq, fill = County)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top Ten Counties with the Most Electric Vehicles",
+       x = "County",
+       y = "Count") +
+  theme_minimal() +
+  guides(fill = FALSE)
+```
+
+
+
+
+
+## 3
+Based on how many people live in King County, what is the proportion of people who drive electric cars?
+```{r}
+#King County
+kingCounty_car <- subset(wa_data, County == "King") 
+#Count the number of electric cars in King County
+electric_car_count_king <- nrow(kingCounty_car)
+#Total population of King County
+total_population_king <- 2252000  
+#Calculate the proportion
+proportion_electric_cars_king <- electric_car_count_king / total_population_king
+proportion_electric_cars_king <- proportion_electric_cars_king * 100
+cat("Percentage of people in King County with an Electric car:", proportion_electric_cars_king, "%\n")
+```
+
+Based on how many people live in Snohomish County, what is the proportion of people who drive electric cars?
+```{r}
+#Snohomish County
+snohomishCounty_car <- subset(wa_data, County == "Snohomish")
+electric_car_count_snohomish <- nrow(snohomishCounty_car)
+total_population_snohomish <- 833540  
+proportion_electric_cars_snohomish <- electric_car_count_snohomish / total_population_snohomish
+proportion_electric_cars_snohomish <- proportion_electric_cars_snohomish * 100
+cat("Percentage of people in Snohomish County with an Electric car:", proportion_electric_cars_snohomish, "%\n")
+```
+
+Based on how many people live in Pierce County, what is the proportion of people who drive electric cars?
+```{r}
+#Pierce County
+pierceCounty_car <- subset(wa_data, County == "Pierce")
+electric_car_count_pierce <- nrow(pierceCounty_car)
+total_population_pierce <- 925708  
+proportion_electric_cars_pierce <- electric_car_count_pierce / total_population_pierce
+proportion_electric_cars_pierce <- proportion_electric_cars_pierce * 100
+cat("Percentage of people in Pierce County with an Electric car:", proportion_electric_cars_pierce, "%\n")
+```
+
+Based on how many people live in WA what is the proportion of people who drive electric cars?
+```{r}
+#WA
+electric_car_count_wa <- nrow(wa_data)
+total_population_wa <- 7739000  
+proportion_electric_cars_wa <- electric_car_count_wa / total_population_wa
+proportion_electric_cars_wa <- proportion_electric_cars_wa * 100
+cat("Percentage of people in all of WA with an Electric car:", proportion_electric_cars_wa, "%\n")
+```
+
+Based on how many cars are registered in WA, what is the proportion of electric cars?
+```{r}
+#WA
+electric_car_count_wa <- nrow(wa_data)
+#Total CAR population of WA
+total_population_wa <- 7966147  
+proportion_electric_cars_wa <- electric_car_count_wa / total_population_wa
+proportion_electric_cars_wa <- proportion_electric_cars_wa * 100
+cat("Percentage of EVs out of all total registered cars:", proportion_electric_cars_wa, "%\n")
+
+```
+
+
+
+
+## 4
+Interactive plot that shows median income by county, with number of cars in 2021.
+```{r}
+#List of top ten counties
+selected_counties <- c("King", "Snohomish", "Pierce", "Clark" ,"Thurston", "Kitsap", "Spokane", "Whatcom", "Benton", "Skagit")
+
+#Just get top ten counties
+filtered_wa_data <- wa_data %>% filter(County %in% selected_counties)
+
+#Cars per county
+electric_vehicle_summary <- filtered_wa_data %>%
+  group_by(County) %>%
+  summarize(electric_vehicle_count = n())
+
+#Only income on 2021
+filtered_income_df <- county_income_df %>%
+  filter(Name %in% selected_counties, Year == 2021)
+
+#Merge filtered_income_df to include median household income
+merged_data <- left_join(electric_vehicle_summary, filtered_income_df, by = c("County" = "Name"))
+#ordered_data$County <- factor(ordered_data$County, levels = ordered_data$County)
+
+#Make interactive plot
+plot <- plot_ly(merged_data, x = ~County, y = ~Value, type = 'bar',
+                marker = list(color = ~Value, colorscale = 'heat'),
+                text = ~paste("# of Electric Vehicles: ", electric_vehicle_count,
+                              "<br>Median Income: $", Value))
+
+plot <- plot %>% layout(title = 'Income by County & Electric Car Count (2021)',
+                        xaxis = list(title = 'Top Ten counties with the most Electric Cars'),
+                        yaxis = list(title = 'Median Income'))
+plot
+
+
+
+#I dont think this is needed?
+correlation_data <- merged_data %>% select(electric_vehicle_count, Value)
+correlation_matrix <- cor(correlation_data)
+```
+
+
+
+
+## 5
+Of the top five companies that are the most popular, how does their mileage span over the years?
+```{r}
+#Looking into the top 5 companies that make EV's and their mileage span over the years
+selected_makes <- c("TESLA", "NISSAN", "CHEVROLET", "FORD", "BMW")
+selected_make_data <- wa_data %>%
+  filter(Make %in% selected_makes)
+
+# Create an interactive scatter plot using plotly
+plot4 <- plot_ly(selected_make_data, x = ~Model.Year, y = ~Electric.Range, color = ~Make, text = ~Model,
+                type = 'scatter', mode = 'markers',
+                hoverinfo = "text")
+
+# Customize the layout
+plot4 <- plot4 %>% layout(title = 'Electric Range vs Model Year by Make',
+                 xaxis = list(title = 'Model Year'),
+                 yaxis = list(title = 'Electric Range (miles)'),
+                 showlegend = TRUE)
+plot4
+```
+
+
+
+
+
+## 6
+Create a map of Pierce county and all of the Nissan cars
+```{r}
+# Filter data for NISSAN cars
+nissan_data <- wa_data[wa_data$Make == "NISSAN" & wa_data$County == "Pierce",] #998 cars
+
+#Split the string into latitude and longitude
+nissan_data$Vehicle.Location <- gsub("POINT \\((.*)\\)", "\\1", nissan_data$Vehicle.Location)
+coordinates <- str_split_fixed(nissan_data$Vehicle.Location, " ", 2)
+nissan_data$Latitude <- as.numeric(coordinates[, 1])
+nissan_data$Longitude <- as.numeric(coordinates[, 2])
+#nissan_data #now has log and lat
+#head(nissan_data)
+
+
+
+#Create a leaflet map
+car_map <- leaflet(data = nissan_data) %>%
+  addTiles()  
+
+#Add markers for each car location
+car_map <- car_map %>% 
+  addMarkers(lng = ~Latitude, lat = ~Longitude, popup = ~paste(
+      "Car Model: ", Model, "<br>",
+      "Year Made: ", Model.Year, "<br>",
+      "City: ", City, "<br>",
+      "Electric Range: ", Electric.Range, " miles"))
+car_map
+```
+
+
+
+
+
+
+
+
+
