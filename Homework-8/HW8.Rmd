@@ -1,0 +1,70 @@
+---
+title: "DSCI 401 - HW8"
+author: "Isabel Heard"
+date: "12/12/2023"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1
+Answer all these questions using the babynames data set from the babynames package in R.
+```{r, results='hide', warning=FALSE}
+library(babynames)
+library(tidyverse)
+library(dplyr)
+```
+
+
+## A
+Find all the baby names that are exactly 4 letters long, begin with two vowels (a,e,i,o,u), and end in the letter y. How many are there?
+```{r}
+filtered_names <- babynames %>%
+  filter(
+    nchar(name) == 4,
+    substr(name, nchar(name), nchar(name)) == "y",
+    grepl("^[aeiou]{2}", name, ignore.case = TRUE))
+#print(filtered_names$name)
+
+#Count unique names
+number_of_names <- filtered_names %>%
+  summarize(count = n_distinct(name))
+print(paste("Number of unique names that are exactly 4 letters long, begin with two vowels, and end with the letter y:", number_of_names$count))
+
+#Print unique names
+distinct_names3 <- distinct(filtered_names, name)
+print(distinct_names3$name)
+```
+
+## B
+Find all the babynames that begin and end with the letter g. How many are there?
+```{r}
+g_names <- babynames$name[grep("^g.*g$", babynames$name, ignore.case = TRUE)]
+number_of_names <- length(g_names)
+
+#Count unique names
+unique_count <- length(unique(g_names))
+print(paste("Number of unique names that start and end with g:", unique_count))
+
+#Print unique names
+distinct_names <- unique(g_names)
+print(distinct_names)
+```
+
+
+
+
+
+
+
+
+
