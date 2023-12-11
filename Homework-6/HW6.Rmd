@@ -1,0 +1,55 @@
+---
+title: "DSCI 401 - HW 6"
+author: "Isabel Heard"
+date: "11/10/2023"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1
+Using the data whately 2015 from the macleish package, create an interactive plot using plotly (or ggplotly) displaying time (in days) on the x-axis and temperature on the y-axis with three lines: one for the high temperature of the day, one for the average temperature of the day, and one for the low temperature of the day. A csv version of the file can be found here: https://www.dropbox.com/s/m2nt50qanpijp0m/whately2015.csv?dl=0
+
+```{r, message=FALSE, warning = FALSE}
+library(plotly) 
+library(tidyverse)
+library(dplyr)
+library(mdsr)
+library(macleish)
+#head(whately_2015)
+```
+
+
+```{r}
+#Change the when variable to an easier date format to work with
+whately_2015$when <- as.POSIXct(whately_2015$when)
+
+#Get high, average, and low temperatures
+summary <- whately_2015 %>%
+  mutate(day = as.Date(when)) %>%
+  group_by(day) %>%
+  summarise(high = max(temperature), average = mean(temperature), low = min(temperature))
+
+#Set width to equal 1 to make lines skinnier
+summary_plot <- plot_ly(data = summary) %>%
+  add_trace(x = ~day, y = ~high, type = 'scatter', mode = 'lines',name = 'High Temperature', line = list(color = 'red', width = 1)) %>%
+  add_trace(x = ~day, y = ~average, type = 'scatter', mode = 'lines',name = 'Average Temperature', line = list(color = 'green', width = 1)) %>%
+  add_trace(x = ~day, y = ~low, type = 'scatter', mode = 'lines',name = 'Low Temperature', line = list(color = 'blue', width = 1)) %>%
+  layout(title = "Temperature Variation by Day", xaxis = list(title = "Date"), yaxis = list(title = "Temperature in Celsius"), showlegend = TRUE)
+summary_plot
+```
+
+
+# Python Link
+https://colab.research.google.com/drive/1uh6dTnjQZoqzuNtzcQZtht_1HYWpeakH?usp=sharing
+
+
