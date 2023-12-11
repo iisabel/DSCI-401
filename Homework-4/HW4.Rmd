@@ -1,0 +1,102 @@
+---
+title: "DSCI 401 HW 4"
+author: "Isabel Heard"
+date: "10/20/2023"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1
+
+## A
+Use the HELPrct data from the mosaicData to calculate the mean of all numeric variables (be sure to exclude missing values).
+```{r}
+library(mosaicData)
+library(tidyverse)
+library(dplyr)
+data(HELPrct)
+#head(HELPrct)
+#summary(HELPrct)
+
+HELPrct %>%
+  summarize(across(where(is.numeric), mean, na.rm = TRUE))
+```
+
+
+## B
+Find the mean of all the numeric variables stratified by sex and age group where age groups are defined as ranges of 10 years (i.e. 0-10, 10-20, 20-30, etc).
+```{r}
+#Age groups and labels
+age_groups <- seq(0, max(HELPrct$age), by = 10)
+age_labels <- paste(age_groups, age_groups + 10, sep = "-")
+#Add a label for ages greater than the maximum age - helps with error
+age_labels[length(age_labels)] <- paste(age_labels[length(age_labels)], "and above")
+df <- HELPrct %>% mutate(age_group = cut(age, breaks = c(age_groups, Inf), labels = age_labels, include.lowest = TRUE))
+
+#Mean for each numeric variable, stratified by sex and age group
+result <- df %>%
+  group_by(sex, age_group) %>%
+  summarize(across(where(is.numeric), mean, na.rm = TRUE)) #same code from previous problem
+print(result)
+```
+
+
+## C
+Using the data set created in the previous problem, create a set of line plots with the average age of the age group on the x-axis and each of other numeric variables on the y-axis in separate plots stratified by sex. (Note: You are not allowed to use a for loop here or simply copy-and- paste 20 times!)
+```{r}
+library(ggplot2)
+df_long <- result %>%
+  pivot_longer(cols = c("anysubstatus", "cesd", "d1", "daysanysub", "dayslink", "drugrisk", "e2b", "female", "i1", "i2", "id", 
+                        "indtot", "linkstatus", "mcs", "pcs", "pss_fr", "sexrisk", "avg_drinks", "max_drinks", "hospitalizations"), names_to = "variable")
+
+plots <- df_long %>%
+  ggplot(aes(x = age_group, y = value, group = interaction(variable, sex), color = sex, linetype = sex)) +
+  geom_line() +
+  facet_wrap(vars(variable), scales = "free_y", ncol = 4, nrow = 5) +
+  labs(x = "Age Group", y = "Numeric Variable", title = "Average Age vs. Given Numeric Variable") +
+  scale_linetype_manual(values = c("solid", "solid")) +  
+  scale_color_manual(values = c("blue", "red")) +        
+  theme_minimal()
+print(plots)
+
+```
+
+
+# 2
+The team IDs corresponding to Brooklyn baseball teams from the Teams data frame from the Lahman package are listed below. Use map int() to find the number of seasons in which each of those teams played by calling a function called count seasons.
+```{r}
+library(Lahman)
+data(Teams)
+
+#List of Brooklyn baseball teams
+bk_teams <- c("BR1", "BR2", "BR3", "BR4", "BRO", "BRP", "BRF")
+
+#Count seasons by teamID/yearID
+count_seasons <- function(team_id) {
+  Teams %>%
+    filter(teamID == team_id) %>%
+    distinct(yearID) %>%
+    nrow()}
+
+#Map to count seasons for each team
+season_counts <- map_int(bk_teams, count_seasons)
+
+#Make df
+result_df <- data.frame(teamID = bk_teams, seasons_played = season_counts)
+print(result_df)
+```
+
+
+# Colab Link
+https://colab.research.google.com/drive/1Yx9utHdcMaggM7X69Yn5h0Jm9ljwOHVC?usp=sharing
+
