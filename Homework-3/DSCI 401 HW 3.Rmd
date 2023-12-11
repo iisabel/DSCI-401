@@ -1,0 +1,223 @@
+---
+title: "DSCI 401 HW 3"
+author: "Isabel Heard"
+date: "10/06/2023"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1
+Use the Batting, Pitching, and People tables in the Lahman package to answer the following questions:
+```{r, results='hide'}
+#Install libraries
+library(Lahman)
+library("dplyr")
+library("tidyr")
+
+#Load in Lahman tables
+data(Batting)
+head(Batting)
+
+data(Pitching)
+head(Pitching)
+
+data(People)
+head(People)
+```
+
+## A
+Name every player in baseball history who has accumulated at least 300 home runs (HR) AND at least 300 stolen bases (SB). You can find the first and last name of the player in the People data frame. Join this to your result along with the total home runs and total bases stolen for each of these elite players.
+```{r}
+#Name (People), HR (Batting), SB(Batting)
+#Common variable = playerID
+Batting %>%
+  group_by(playerID) %>%
+  summarize(total_HR = sum(HR),total_SB = sum(SB)) %>%
+  left_join(People, by = c("playerID" = "playerID")) %>%
+  filter(total_HR >= 300 & total_SB >= 300) %>%
+  select(nameGiven, total_HR, total_SB)
+```
+
+## B
+Similarly, name every pitcher in baseball history who has accumulated at least 300 wins (W) and at least 3,000 strikeouts (SO).
+```{r}
+#Name (People), W (Pitching), SO (Pitching)
+#Common variable = playerID
+Pitching %>%
+  group_by(playerID) %>%
+  summarize(TotalWin = sum(W),TotalSO = sum(SO)) %>%
+  left_join(People, by = c("playerID" = "playerID")) %>%
+  filter(TotalWin >= 300 & TotalSO >= 3000) %>%
+  select(nameFirst, nameLast, nameGiven, TotalWin, TotalSO)
+```
+
+## C
+Identify the name and year of every player who has hit at least 50 home runs in a single season. Which player had the lowest batting average in that season? (Note: batting average)
+```{r}
+#Name (People), HR (Batting), AB (Batting), H (Batting), yearID (Batting)
+#Common variable = playerID
+Batting %>%
+  group_by(playerID, yearID) %>%
+  summarize(TotalHR = sum(HR), BA = sum(H)/sum(AB)) %>%
+  right_join(People, by = c("playerID" = "playerID")) %>%
+  filter(TotalHR >= 50) %>%
+  select(nameFirst, nameLast, yearID, TotalHR, BA) %>%
+  arrange(BA)
+```
+
+
+
+
+# 2 
+Use the nycflights13 package and the flights and planes tables to answer the following questions:
+```{r, results='hide'}
+#Install libraries
+#install.packages('nycflights13')
+library(nycflights13)
+
+#Load in nycflights13 tables
+data(flights)
+#head(flights)
+
+data(planes)
+#head(planes)
+```
+
+## A
+What is the oldest plane (specified by the tailnum variable) that flew from New York City airports in 2013?
+```{r}
+#no need to finter for 2013
+#common variable is tailnum
+#use head to get first row in data frame
+planes %>%
+  rename(year_built = year) %>%
+  left_join(flights, by = "tailnum") %>%
+  arrange(year_built) %>%
+  select(tailnum, year_built) %>%
+  head(1)
+```
+
+## B
+How many airplanes that flew from New York City are included in the planes table?
+```{r}
+#find distinct planes
+#common variable is tailnum
+planes_nyc <- flights %>% 
+  inner_join(planes, by = "tailnum") %>% 
+  summarize(n=n_distinct(tailnum))
+print(planes_nyc)
+```
+
+
+
+
+# 3
+Generate the code to convert the following data frame to wide format.
+```{r}
+dat <- data.frame(grp = c("A","A","B","B"),
+                  sex = c("F","M","F","M"),
+                  meanL = c(0.225,0.47,0.325,0.547),
+                  sdL = c(0.106,.325,.106,.308),
+                  meanR = c(.34,.57,.4,.647),
+                  sdR = c(0.0849, 0.325, 0.0707, 0.274))
+#print(dat)
+```
+
+
+```{r}
+wide_dat <- dat %>%
+  pivot_wider(
+    names_from = sex,
+    values_from = c("meanL", "sdL", "meanR", "sdR"),
+    names_sep = ".")
+print(wide_dat)
+```
+
+
+
+
+# 4
+Consider the pccc_icd10 dataset.
+```{r}
+df <- read.csv("https://raw.githubusercontent.com/gjm112/DSCI401/main/data/pccc_icd10_dataset.csv")
+```
+
+## A
+Remove all the columns labeled with ”g” and a number.
+```{r}
+# ^ is referencing the start of the string
+# //d+ matches one or more digits
+# - sign before matches removes those values from the data set
+df_filtered <- df %>%
+  select(-matches("^g\\d+"))
+head(df_filtered)
+```
+
+## B
+Convert this to a long data set with three columns: id, type (pc or dx), and code.
+```{r}
+# ^(dx|pc)\\d+$ match column names that start with dx or pc followed by one or more digit and populate the type column
+df_long <- df_filtered %>%
+  pivot_longer(
+    cols = -id,
+    names_to = "type",
+    names_pattern = "^(dx|pc)\\d+$"
+  ) %>%
+  filter(type %in% c("dx", "pc"))
+
+df_long <- df_long %>%
+  rename(code = value) 
+head(df_long)
+```
+
+# Colab Link
+https://colab.research.google.com/drive/1wxj40CAssvcrznMYU8GT8vKXvyvpe7oU?usp=sharing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
